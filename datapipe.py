@@ -1,13 +1,22 @@
 import six
+import types
+
+import logging
+logger = logging.getLogger('datapipe')
+ch = logging.StreamHandler()
+formatter = logging.Formatter('%(levelname)s - %(message)s')
+ch.setFormatter(formatter)
+logger.addHandler(ch)
+logger.setLevel(logging.DEBUG)
 
 class Input:
     # Used for calculating the order that Inputs are defined in.
     # The counter increases globally over all instances of Input
-    counter = 0
+    _counter = 0
     def __init__(self, default=None):
         self.default = default
-        self.counter = Input.counter
-        Input.counter += 1
+        self._counter = Input._counter
+        Input._counter += 1
 
 class Task:
 
@@ -18,11 +27,27 @@ class Task:
         for key, value in param_values:
             setattr(self, key, value)
         # Register args and kwargs as an attribute on the class. Might be useful
+        self.param_values = param_values
         self.param_args = tuple(value for key, value in param_values)
-        self.param_kwargs = dict(param_values)
 
-    def input(self):
-        pass
+        self.user_run = self.run
+
+        def run(self):
+            logger.info('RUNNING {}'.format(self))
+            self.user_run()
+            logger.info('FINISHED {}'.format(self))
+
+        # Register args and kwargs as an attribute on the class. Might be useful
+        self.param_args = tuple(value for key, value in param_values)
+
+        self.run = types.MethodType(run, self)
+
+    def __str__(self):
+        result = []
+        for k, w in self.param_values:
+            result.append('{}={}'.format(k, repr(w)))
+
+        return self.__class__.__name__ + '(' + ', '.join(result) + ')'
 
     def output(self):
         pass
@@ -40,7 +65,7 @@ class Task:
 
             params.append((param_name, param_obj))
 
-        params.sort(key=lambda t: t[1].counter)
+        params.sort(key=lambda t: t[1]._counter)
         return params
 
     @classmethod
@@ -65,6 +90,7 @@ class Task:
                 raise ValueError()
             result[param_name] = arg
 
+        # substitute defaults
         for param_name, param_obj in params:
             if param_name not in result:
                 if param_obj.default is None:
@@ -77,20 +103,23 @@ class Target:
     def __init__(self):
         pass
 
-class FilePath(Target):
+class LocalFile(Target):
     def __init__(self, path):
         self.path = path
 
     def clone(self, path=None):
         if not path is None:
-            return FilePath(path)
+            return LocalFile(path)
         else:
-            return FilePath(self.path)
+            return LocalFile(self.path)
     
     def get(self):
         return self.path
 
     def from_suffix(self, suf, app):
         return self.clone(path=self.path.replace(suf, app))
+
+    def __repr__(self):
+        return "LocalFile('" + self.path + "')"
 
 
