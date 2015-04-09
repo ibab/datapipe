@@ -6,7 +6,7 @@ Inspirations: [ruffus](http://code.google.com/p/ruffus/), [luigi](https://github
 ## Example
 
 ```python
-from datapipe import Task, Input, LocalFile
+from datapipe import Task, Input, LocalFile, require
 
 # New tasks are defined by inheriting from an existing Task
 class AddLines(Task):
@@ -19,26 +19,25 @@ class AddLines(Task):
     text = Input(default='This is some text')
 
     # The outputs are defined dynamically (with access to the inputs)
-    def output(self):
+    def outputs(self):
         return self.infile.from_suffix('.txt', '.AddLines.txt')
 
     # The actual task is defined as a function with access to inputs and outputs
     def run(self):
         with open(self.infile.get()) as f:
-            with open(self.output().get(), 'w') as g:
+            with open(self.outputs().get(), 'w') as g:
                 g.write(f.read())
                 for i in range(self.count):
                     g.write(self.text + '\n')
-
 
 # Create initial Targets
 infile = LocalFile('out.txt')
 
 # Define the pipeline
 task1 = AddLines(infile, count=2)
-task2 = AddLines(task1.output(), count=3, text='This is some more text')
+task2 = AddLines(task1.outputs(), count=3, text='This is some more text')
 
-# Require any task to run
-task2.run()
+# Require any target to execute the necessary tasks
+require(task2.outputs())
 ```
 
