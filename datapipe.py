@@ -1,5 +1,7 @@
 import six
 import types
+import sqlite3
+import collections
 
 import logging
 logger = logging.getLogger('datapipe')
@@ -21,30 +23,55 @@ class Input:
 class Task:
 
     def __init__(self, *args, **kwargs):
-        params = self.get_params()
-        param_values = self.get_param_values(params, args, kwargs)
+        global current_task
+        current_task = self
+
+        inputs = self.get_inputs()
+        input_values = self.get_input_values(inputs, args, kwargs)
         # Set all values on class instance
-        for key, value in param_values:
+        for key, value in input_values:
             setattr(self, key, value)
         # Register args and kwargs as an attribute on the class. Might be useful
-        self.param_values = param_values
-        self.param_args = tuple(value for key, value in param_values)
+        self.input_values = input_values
+        self.input_args = tuple(value for key, value in input_values)
 
         self.user_run = self.run
 
+        # Add custom modifications to output()
+        self.user_output = self.output
+        def output(self):
+            global current_task
+            current_task = self
+            outputs = self.user_output()
+            current_task = None
+            return outputs
+
+        self.output = types.MethodType(output, self)
+
+        # Add custom modifications to run()
         def run(self):
             logger.info('RUNNING {}'.format(self))
             self.user_run()
-            logger.info('FINISHED {}'.format(self))
+            out = self.output()
+            if isinstance(out, collections.Iterable):
+                for o in out:
+                    if not o.exists():
+                        raise RuntimeError('Output {} not created after running task!'.format(o))
+            else:
+                if not out.exists():
+                    raise RuntimeError('Output {} not created after running task!'.format(out))
 
-        # Register args and kwargs as an attribute on the class. Might be useful
-        self.param_args = tuple(value for key, value in param_values)
+            logger.info('FINISHED {}'.format(self))
 
         self.run = types.MethodType(run, self)
 
+        self.input_args = tuple(value for key, value in input_values)
+
+        current_task = None
+
     def __str__(self):
         result = []
-        for k, w in self.param_values:
+        for k, w in self.input_values:
             result.append('{}={}'.format(k, repr(w)))
 
         return self.__class__.__name__ + '(' + ', '.join(result) + ')'
@@ -56,70 +83,96 @@ class Task:
         pass
 
     @classmethod
-    def get_params(cls):
-        params = []
-        for param_name in dir(cls):
-            param_obj = getattr(cls, param_name)
-            if not isinstance(param_obj, Input):
+    def get_inputs(cls):
+        inputs = []
+        for input_name in dir(cls):
+            input_obj = getattr(cls, input_name)
+            if not isinstance(input_obj, Input):
                 continue
 
-            params.append((param_name, param_obj))
+            inputs.append((input_name, input_obj))
 
-        params.sort(key=lambda t: t[1]._counter)
-        return params
+        inputs.sort(key=lambda t: t[1]._counter)
+        return inputs
 
     @classmethod
-    def get_param_values(cls, params, args, kwargs):
+    def get_input_values(cls, inputs, args, kwargs):
         result = {}
 
-        params_dict = dict(params)
+        inputs_dict = dict(inputs)
 
         # positional arguments
-        positional_params = [(n, p) for n, p in params]
+        positional_inputs = [(n, p) for n, p in inputs]
         for i, arg in enumerate(args):
-            if i >= len(positional_params):
+            if i >= len(positional_inputs):
                 raise ValueError()
-            param_name, param_obj = positional_params[i]
-            result[param_name] = arg
+            input_name, input_obj = positional_inputs[i]
+            result[input_name] = arg
 
         # optional arguments
-        for param_name, arg in six.iteritems(kwargs):
-            if param_name in result:
+        for input_name, arg in six.iteritems(kwargs):
+            if input_name in result:
                 raise ValueError()
-            if param_name not in params_dict:
+            if input_name not in inputs_dict:
                 raise ValueError()
-            result[param_name] = arg
+            result[input_name] = arg
 
         # substitute defaults
-        for param_name, param_obj in params:
-            if param_name not in result:
-                if param_obj.default is None:
+        for input_name, input_obj in inputs:
+            if input_name not in result:
+                if input_obj.default is None:
                     raise ValueError()
-                result[param_name] = param_obj.default
+                result[input_name] = input_obj.default
 
-        return [(param_name, result[param_name]) for param_name, param_obj in params]
+        return [(input_name, result[input_name]) for input_name, input_obj in inputs]
 
-class Target:
+class History:
     def __init__(self):
+        self.conn = sqlite3.connect('.history.db')
+
+def get_current_task():
+    global current_task
+    return current_task
+
+class Target(object):
+    def __init__(self):
+        self.parent = get_current_task()
+
+    def newer(self, targets):
+        # Check if this target is newer than the specified targets
         pass
+
+    def exists(self):
+        # Check if this target exists
+        pass
+
+    def get(self):
+        # Get the underlying representation
+        pass
+
+    def __repr__(self):
+        return self.__class__.__name__ + '(' + repr(self.get()) + ')'
 
 class LocalFile(Target):
     def __init__(self, path):
+        super(LocalFile, self).__init__()
         self.path = path
 
     def clone(self, path=None):
-        if not path is None:
-            return LocalFile(path)
-        else:
+        if path is None:
             return LocalFile(self.path)
-    
+        else:
+            return LocalFile(path)
+
+    def exists(self):
+        import os
+        return os.path.exists(self.path)
+
     def get(self):
         return self.path
 
     def from_suffix(self, suf, app):
         return self.clone(path=self.path.replace(suf, app))
 
-    def __repr__(self):
-        return "LocalFile('" + self.path + "')"
-
+current_task = None
 
