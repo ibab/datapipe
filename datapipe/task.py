@@ -1,24 +1,12 @@
 import six
 import types
-import sqlite3
+import logging
 import collections
 
-import logging
-logger = logging.getLogger('datapipe')
-ch = logging.StreamHandler()
-formatter = logging.Formatter('%(levelname)s - %(message)s')
-ch.setFormatter(formatter)
-logger.addHandler(ch)
-logger.setLevel(logging.DEBUG)
+from .input import Input
 
-class Input:
-    # Used for calculating the order that Inputs are defined in.
-    # The counter increases globally over all instances of Input
-    _counter = 0
-    def __init__(self, default=None):
-        self.default = default
-        self._counter = Input._counter
-        Input._counter += 1
+logger = logging.getLogger('datapipe')
+
 
 class Task:
 
@@ -53,13 +41,11 @@ class Task:
             logger.info('RUNNING {}'.format(self))
             self.user_run()
             out = self.output()
-            if isinstance(out, collections.Iterable):
-                for o in out:
-                    if not o.exists():
-                        raise RuntimeError('Output {} not created after running task!'.format(o))
-            else:
-                if not out.exists():
-                    raise RuntimeError('Output {} not created after running task!'.format(out))
+            if not isinstance(out, collections.Iterable):
+                out = [out]
+            for o in out:
+                if not o.exists():
+                    raise RuntimeError('Output {} not created after running task!'.format(o))
 
             logger.info('FINISHED {}'.format(self))
 
@@ -126,53 +112,9 @@ class Task:
 
         return [(input_name, result[input_name]) for input_name, input_obj in inputs]
 
-class History:
-    def __init__(self):
-        self.conn = sqlite3.connect('.history.db')
+current_task = None
 
 def get_current_task():
     global current_task
     return current_task
-
-class Target(object):
-    def __init__(self):
-        self.parent = get_current_task()
-
-    def newer(self, targets):
-        # Check if this target is newer than the specified targets
-        pass
-
-    def exists(self):
-        # Check if this target exists
-        pass
-
-    def get(self):
-        # Get the underlying representation
-        pass
-
-    def __repr__(self):
-        return self.__class__.__name__ + '(' + repr(self.get()) + ')'
-
-class LocalFile(Target):
-    def __init__(self, path):
-        super(LocalFile, self).__init__()
-        self.path = path
-
-    def clone(self, path=None):
-        if path is None:
-            return LocalFile(self.path)
-        else:
-            return LocalFile(path)
-
-    def exists(self):
-        import os
-        return os.path.exists(self.path)
-
-    def get(self):
-        return self.path
-
-    def from_suffix(self, suf, app):
-        return self.clone(path=self.path.replace(suf, app))
-
-current_task = None
 
