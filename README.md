@@ -31,13 +31,22 @@ class AddLines(Task):
                     g.write(self.text + '\n')
 
 # Create initial Targets
-infile = LocalFile('out.txt')
+infile = LocalFile('input.txt')
 
 # Define the pipeline
 task1 = AddLines(infile, count=2)
 task2 = AddLines(task1.outputs(), count=3, text='This is some more text')
 
-# Require any target to execute the necessary tasks
+# Require a target to execute all tasks needed to produce it
 require(task2.outputs())
+
+```
+
+The log output for the above example looks like this:
+```
+INFO - RUNNING AddLines(infile=LocalFile('out.txt'), count=2, text='This is some text')
+INFO - FINISHED AddLines(infile=LocalFile('out.txt'), count=2, text='This is some text')
+INFO - RUNNING AddLines(infile=LocalFile('out.AddLines.txt'), count=3, text='This is some more text')
+INFO - FINISHED AddLines(infile=LocalFile('out.AddLines.txt'), count=3, text='This is some more text')
 ```
 
