@@ -1,49 +1,44 @@
 
 # Datapipe
 
-Datapipe is a planned Python framework for processing data:
-
- - Modularize individual steps of your pipeline into composable *tasks*
- - Compose tasks using a flexible syntax inspired by functional programming
- - Only run those tasks whose inputs have changed
- - Automatically generate a command line interface for driving your pipeline
- - Graphically display your data flow
- - Monitor and run the pipeline from a web interface
- - Possible integration with IPython notebook?
-
-Benefits of using Datapipe:
- 
- - Keeps track of which tasks have been applied to which datasets so you don't have to
- - Makes your data analysis fully reproducible
- - Modular and composable tasks allow you to work effectively with others
-
 Inspirations: [ruffus](http://code.google.com/p/ruffus/), [luigi](https://github.com/spotify/luigi)
 
-## Mockup
+## Example
 
 ```python
-from datapipe import DataPipe
+from datapipe import Task, Input, LocalFile
 
-pipe = DataPipe()
+# New tasks are defined by inheriting from an existing Task
+class AddLines(Task):
 
-@pipe.task
-def processA(infile, outfile):
-    # add something to infile
+    # The inputs can be anything that inherits from Target
+    # or that can be converted to a target: local and remote
+    # files, python objects, numpy arrays, ...
+    infile = Input()
+    count = Input(default=1)
+    text = Input(default='This is some text')
 
-@pipe.task
-def processB(infile, outfile):
-    # add something to infile
+    # The outputs are defined dynamically (with access to the inputs)
+    def output(self):
+        return self.infile.from_suffix('.txt', '.AddLines.txt')
 
-@pipe.task
-def mergeAB(infiles, outfile):
-    # merge all infiles to outfile
+    # The actual task is defined as a function with access to inputs and outputs
+    def run(self):
+        with open(self.infile.get()) as f:
+            with open(self.output().get(), 'w') as g:
+                g.write(f.read())
+                for i in range(self.count):
+                    g.write(self.text + '\n')
 
-fs = pipe.load(['test.txt'])
 
-outputs = pipe.map([processA, processB], fs)
-pipe.zip(mergeAB, outputs)
+# Create initial Targets
+infile = LocalFile('out.txt')
 
-pipe.run()
+# Define the pipeline
+task1 = AddLines(infile, count=2)
+task2 = AddLines(task1.output(), count=3, text='This is some more text')
 
+# Require any task to run
+task2.run()
 ```
 
