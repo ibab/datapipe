@@ -1,0 +1,124 @@
+<!-- index.html -->
+<html>
+  <head>
+    <title>Hello React</title>
+    <script src="https://fb.me/react-0.13.1.js"></script>
+    <script src="https://fb.me/JSXTransformer-0.13.1.js"></script>
+    <script src="https://code.jquery.com/jquery-2.1.3.min.js"></script>
+    <script src="/js/d3.v3.min.js" charset="utf-8"></script>
+    <script src="/js/cola.v3.min.js"></script>
+    <style>
+    .node {
+        fill: #ccc;
+        stroke: #fff;
+        stroke-width: 2px;
+    }
+
+    .link {
+      fill: none;
+      stroke: #000;
+      stroke-width: 1.5px;
+      opacity: 0.4;
+      marker-end: url(#end-arrow);
+    }
+
+    </style>
+  </head>
+  <body>
+    <div id="content">
+    </div>
+    <script type="text/jsx">
+        //var ws = new WebSocket("ws://localhost:8081")
+
+        var nodes = [
+          { name: "AddLines" },
+          { name: "AddLines" },
+          { name: "AddLines" },
+          { name: "AddLines" }
+        ];
+
+        var links = [
+          { source: 0, target: 1 },
+          { source: 1, target: 2 },
+          { source: 3, target: 2 },
+        ];
+
+        var constraints = [
+            {"axis":"y", "left":1, "right":0, "gap":20},
+            {"axis":"y", "left":2, "right":1, "gap":20},
+            {"axis":"y", "left":2, "right":3, "gap":20},
+        ];
+
+        var w = 400,
+            h = 400;
+
+        var myD3 = (function() {
+          var svg = d3.select("#content").append("svg")
+            .attr('class', 'taskview')
+            .attr('width', w)
+            .attr('height', h);
+
+          var force = cola.d3adaptor();
+
+          force.linkDistance(60)
+            .size([w, h])
+            .nodes(nodes)
+            .links(links)
+            .avoidOverlaps(true)
+            .constraints(constraints)
+            //.symmetricDiffLinkLengths(5)
+            .start(10, 10, 10);
+
+          svg.append('svg:defs').append('svg:marker')
+            .attr('id', 'end-arrow')
+            .attr('viewBox', '0 -5 10 10')
+            .attr('refX', 6)
+            .attr('markerWidth', 3)
+            .attr('markerHeight', 3)
+            .attr('orient', 'auto')
+            .append('svg:path')
+            .attr('d', 'M0,-5L10,0L0,5')
+            .attr('fill', '#000');
+
+          var link = svg.selectAll('.link')
+            .data(links)
+            .enter().append('svg:path')
+            .attr('class', 'link');
+
+          var node = svg.selectAll('.node')
+              .data(nodes)
+              .enter().append('circle')
+              .attr('class', 'node')
+              .call(force.drag);
+
+          var nodeRadius = w / 50;
+
+          force.on('tick', function() {
+            node.attr('r', nodeRadius)
+                .attr('cx', function(d) { return d.x; })
+                .attr('cy', function(d) { return d.y; });
+
+            // draw directed edges with proper padding from node centers
+            link.attr('d', function (d) {
+                var deltaX = d.target.x - d.source.x,
+                    deltaY = d.target.y - d.source.y,
+                    dist = Math.sqrt(deltaX * deltaX + deltaY * deltaY),
+                    normX = deltaX / dist,
+                    normY = deltaY / dist,
+                    sourcePadding = nodeRadius,
+                    targetPadding = nodeRadius + 2,
+                    sourceX = d.source.x + (sourcePadding * normX),
+                    sourceY = d.source.y + (sourcePadding * normY),
+                    targetX = d.target.x - (targetPadding * normX),
+                    targetY = d.target.y - (targetPadding * normY);
+                return 'M' + sourceX + ',' + sourceY + 'L' + targetX + ',' + targetY;
+            });
+
+          });
+
+          force.start();
+
+        })();
+    </script>
+  </body>
+</html>
