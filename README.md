@@ -42,9 +42,17 @@ require(task2.outputs())
 
 The log output for the above example looks like this:
 ```
-INFO - RUNNING AddLines(infile=LocalFile('out.txt'), count=2, text='This is some text')
-INFO - FINISHED AddLines(infile=LocalFile('out.txt'), count=2, text='This is some text')
-INFO - RUNNING AddLines(infile=LocalFile('out.AddLines.txt'), count=3, text='This is some more text')
-INFO - FINISHED AddLines(infile=LocalFile('out.AddLines.txt'), count=3, text='This is some more text')
+INFO - REQUIRE LocalFile('input.AddLines.AddLines.txt')
+INFO - RUNNING AddLines(infile=LocalFile('input.txt'), count=2, text='This is some text')
+INFO - FINISHED AddLines(infile=LocalFile('input.txt'), count=2, text='This is some text')
+INFO - RUNNING AddLines(infile=LocalFile('input.AddLines.txt'), count=3, text='This is some more text')
+INFO - FINISHED AddLines(infile=LocalFile('input.AddLines.txt'), count=3, text='This is some more text')
+```
+
+On subsequent runs, tasks whose outputs are up to date are skipped:
+```
+INFO - REQUIRE LocalFile('input.AddLines.AddLines.txt')
+INFO - SKIPPING AddLines(infile=LocalFile('input.txt'), count=2, text='This is some text')
+INFO - SKIPPING AddLines(infile=LocalFile('input.AddLines.txt'), count=3, text='This is some more text')
 ```
 
