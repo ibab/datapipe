@@ -1,5 +1,6 @@
+import sqlite3
 
 class History:
-    def __init__(self):
-        self.conn = sqlite3.connect('.history.db')
+    def __init__(self, path):
+        self.conn = sqlite3.connect(path)
 
