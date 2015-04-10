@@ -2,6 +2,7 @@ import collections
 from operator import getitem
 import functools
 import dask
+import dask.threaded
 
 from .task import Task, get_current_task
 
@@ -51,7 +52,7 @@ class LocalFile(Target):
     def from_suffix(self, suf, app):
         return self.clone(path=self.path.replace(suf, app))
 
-def require(target):
+def require(target, workers=1):
     d = {}
 
     for t in Task.tasks:
@@ -66,13 +67,13 @@ def require(target):
 
         if not isinstance(outputs, collections.Iterable):
             outputs = (outputs,)
-            
+
         for i, o in enumerate(outputs):
-            d[o] = (runner,) + tuple(inputs)
+            d[o] = (runner,) + inputs
 
         for inp in inputs:
             if isinstance(inp, Target) and not inp.parent:
                 d[inp] = None
     
-    dask.get(d, target)
+    dask.threaded.get(d, target, nthreads=workers)
 
