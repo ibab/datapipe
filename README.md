@@ -1,7 +1,33 @@
 
 # Datapipe
 
-Inspirations: [ruffus](http://code.google.com/p/ruffus/), [luigi](https://github.com/spotify/luigi)
+Datapipe is a Python framework that allows you to build and manage complex data processing pipelines.
+
+## Why not use existing data processing frameworks? 
+
+Datapipe is inspired by similar packages like [luigi](https://github.com/spotify/luigi).
+It aims to improve on alternatives by
+
+ - providing an API that makes tasks fully *composable* 
+   - Tasks are defined separately from the data processing pipeline
+   - can be combined dynamically
+ - speeding up complex, repetitive workflows
+   - Parallel execution of tasks
+   - Only rerun a task if necessary or requested (like `make`)
+
+## Planned features
+
+ - Anything can be an input/output of a task (local/remote files, python objects, …) and will be tracked by datapipe
+ - Various base tasks and targets for working with
+   - local files
+   - remote files (e.g. via `ssh`)
+   - shell commands
+   - batch schedulers (PBS/SLURM/…)
+   - Apache Hadoop/Spark
+   - version control systems
+   - compilers
+ - Interactive web UI that allows you to monitor, start and stop tasks
+   (and possibly even restructure the pipeline and implement new tasks)
 
 ## Example
 
