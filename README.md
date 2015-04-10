@@ -11,16 +11,15 @@ from datapipe import Task, Input, LocalFile, require
 # New tasks are defined by inheriting from an existing Task
 class AddLines(Task):
 
-    # The inputs can be anything that inherits from Target
-    # or that can be converted to a target: local and remote
-    # files, python objects, numpy arrays, ...
+    # The inputs can be anything the task depends on:
+    # Local and remote files, python objects, numpy arrays, ...
     infile = Input()
     count = Input(default=1)
     text = Input(default='This is some text')
 
     # The outputs are defined dynamically (with access to the inputs)
     def outputs(self):
-        return self.infile.from_suffix('.txt', '.AddLines.txt')
+        return LocalFile(self.infile.get().replace('.txt', '.AddLines.txt'))
 
     # The actual task is defined as a function with access to inputs and outputs
     def run(self):
@@ -39,7 +38,6 @@ task2 = AddLines(task1.outputs(), count=3, text='This is some more text')
 
 # Require a target to execute all tasks needed to produce it
 require(task2.outputs())
-
 ```
 
 The log output for the above example looks like this:
