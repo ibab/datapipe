@@ -28,12 +28,14 @@ class Task:
 
         # Add custom modifications to output()
         self.user_outputs = self.outputs
+        # cache outputs
+        global current_task
+        current_task = self
+        cached_outputs = self.user_outputs()
+        current_task = None
+
         def outputs(self):
-            global current_task
-            current_task = self
-            outputs = self.user_outputs()
-            current_task = None
-            return outputs
+            return cached_outputs
 
         self.outputs = types.MethodType(outputs, self)
 
