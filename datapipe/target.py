@@ -109,3 +109,5 @@ def require(target, workers=1, update_from=None):
     
     dask.threaded.get(d, target, nthreads=workers)
 
+    logger.info('DONE {}'.format(target))
+
