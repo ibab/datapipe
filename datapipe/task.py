@@ -120,6 +120,13 @@ class Task:
 
         return [(input_name, result[input_name]) for input_name, input_obj in inputs]
 
+    def __hash__(self):
+        return hash(self.input_args)
+
+    def __eq__(self, other):
+        return repr(self) == repr(other)
+
+
 current_task = None
 
 def get_current_task():
