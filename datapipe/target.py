@@ -73,10 +73,10 @@ def is_uptodate(target):
     if target.parent:
         inputs = filter(lambda o: isinstance(o, Target), target.parent.inputs())
         upstream_uptodate = all(map(is_uptodate, inputs))
-        upstream_timestamps = list(map(lambda o: o.timestamp_contents(), filter(lambda o: o.exists(), inputs)))
         if not upstream_uptodate:
             return False
-        elif upstream_timestamps and target.timestamp_contents() < max(upstream_timestamps):
+        upstream_timestamps = list(map(lambda o: o.timestamp_contents(), filter(lambda o: o.exists(), inputs)))
+        if upstream_timestamps and target.timestamp_contents() < max(upstream_timestamps):
             return False
 
     return True
