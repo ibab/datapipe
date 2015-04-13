@@ -1,11 +1,11 @@
 import six
 import types
-import logging
 import collections
 
+from .log import get_logger
 from .input import Input
 
-logger = logging.getLogger('datapipe')
+logger = get_logger()
 
 class Task:
 

@@ -4,8 +4,9 @@ import functools
 import dask
 import dask.threaded
 import os
-import logging
-logger = logging.getLogger('datapipe')
+
+from .log import get_logger
+logger = get_logger()
 
 from .history import History
 from .task import Task, get_current_task
