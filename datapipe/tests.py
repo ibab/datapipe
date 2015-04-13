@@ -3,7 +3,7 @@ from datapipe import *
 def test_example():
 
     # Create test file
-    open('input.txt', 'w').close()
+    open('/tmp/input.txt', 'w').close()
 
     from datapipe import Task, Input, LocalFile, require
 
@@ -18,18 +18,18 @@ def test_example():
 
         # The outputs are defined dynamically (with access to the inputs)
         def outputs(self):
-            return LocalFile(self.infile.get().replace('.txt', '.AddLines.txt'))
+            return LocalFile(self.infile.path().replace('.txt', '.AddLines.txt'))
 
         # The actual task is defined as a function with access to inputs and outputs
         def run(self):
-            with open(self.infile.get()) as f:
-                with open(self.outputs().get(), 'w') as g:
+            with self.infile.open() as f:
+                with self.outputs().open('w') as g:
                     g.write(f.read())
                     for i in range(self.count):
                         g.write(self.text + '\n')
 
     # Create initial Targets
-    infile = LocalFile('input.txt')
+    infile = LocalFile('/tmp/input.txt')
 
     # Define the pipeline
     task1 = AddLines(infile, count=2)
