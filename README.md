@@ -1,6 +1,8 @@
 
 # Datapipe
 
+![build status](https://travis-ci.org/ibab/datapipe.svg)
+
 Datapipe is a Python framework that allows you to build and manage complex data processing pipelines.
 
 ## Why not use existing data processing frameworks? 
