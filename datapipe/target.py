@@ -39,16 +39,27 @@ class Target(object):
 class LocalFile(Target):
     def __init__(self, path):
         super(LocalFile, self).__init__()
-        self.path = path
+        self._path = path
+        self._handle = None
 
     def timestamp_contents(self):
-        return os.path.getmtime(self.path)
+        return os.path.getmtime(self._path)
 
     def exists(self):
-        return os.path.exists(self.path)
+        return os.path.exists(self._path)
+
+    def path(self):
+        return self._path
 
     def get(self):
-        return self.path
+        return self.path()
+
+    def open(self, *args, **kwargs):
+        self._handle = open(self._path, *args, **kwargs)
+        return self._handle
+
+    def close(self):
+        self._handle.close()
 
 def is_uptodate(target):
     # TODO make this more efficient by calculating the status for all targets once (in require?)
