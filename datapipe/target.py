@@ -143,7 +143,7 @@ def require(target, workers=1, update_from=None):
             if isinstance(o, Target):
                 d[o] = (runner,) + t.inputs()
 
-    dask.get(d, target, nthreads=workers)
+    dask.threaded.get(dask.optimize.cull(d, target), target, nthreads=workers)
 
     logger.info('DONE {}'.format(target))
 
