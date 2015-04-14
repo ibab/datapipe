@@ -11,13 +11,13 @@ from .log import get_logger
 logger = get_logger()
 
 from .history import History
-import task
+import datapipe.task
 
 history = History('.history.db')
 
 class Target(object):
     def __init__(self):
-        self.parent = task.get_current_task()
+        self.parent = datapipe.task.get_current_task()
         self.force_update = False
 
     def exists(self):
@@ -161,7 +161,7 @@ def require(target, workers=1, update_from=None):
     # Create dask
     d = {}
 
-    for t in task.Task.tasks:
+    for t in datapipe.task.Task.tasks:
         inputs = t.inputs()
         outputs = t.outputs()
         if not isinstance(outputs, collections.Iterable):

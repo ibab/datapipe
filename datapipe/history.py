@@ -2,7 +2,7 @@ import sqlite3
 import tempfile
 
 from .log import get_logger
-import target
+import datapipe.target
 logger = get_logger()
 
 class History:
@@ -56,7 +56,7 @@ class History:
         if entry:
             c.execute('UPDATE state SET timestamp=?, path=? WHERE hash=?', (ts, entry[3], hsh))
         else:
-            if isinstance(trgt, target.PyTarget):
+            if isinstance(trgt, datapipe.target.PyTarget):
                 pth = tempfile.NamedTemporaryFile(delete=False).name
             else:
                 pth = ""
