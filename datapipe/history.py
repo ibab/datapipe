@@ -1,6 +1,8 @@
 import sqlite3
+import tempfile
 
 from .log import get_logger
+import target
 logger = get_logger()
 
 class History:
@@ -9,7 +11,7 @@ class History:
 
         conn = sqlite3.connect(self.path)
         c = conn.cursor()
-        c.execute('CREATE TABLE IF NOT EXISTS state (id integer primary key, name string, timestamp double, hash integer)')
+        c.execute('CREATE TABLE IF NOT EXISTS state (id integer primary key, hash integer, timestamp double, path string)')
         conn.commit()
         c.close()
         conn.close()
@@ -17,35 +19,48 @@ class History:
     def target_changed(self, target):
         conn = sqlite3.connect(self.path)
         c = conn.cursor()
-        name = repr(target)
         if not target.exists():
             return True
         ts = target.timestamp()
-        c.execute('SELECT * FROM state WHERE name=?', (name,))
+        c.execute('SELECT * FROM state WHERE hash=?', (hash(target),))
         data = c.fetchone()
-        if data:
-            if ts:
-                return ts > data[2]
+        if data and ts:
+            k = ts > data[2]
+            if k:
+                return True
             else:
-                return hash(target) == data[3]
+                return False
+        elif data:
+            return False
         else:
             return True
         c.close()
         conn.close()
 
-    def add_target(self, target):
+    def get_target(self, target):
         conn = sqlite3.connect(self.path)
         c = conn.cursor()
-        name = repr(target)
-        ts = target.timestamp()
-        if ts:
-            hsh = 0
+        hsh = hash(target)
+        ret = c.execute('SELECT * FROM state WHERE hash=?', (hsh,)).fetchone()
+        c.close()
+        conn.close()
+        return ret
+
+    def add_target(self, trgt):
+        conn = sqlite3.connect(self.path)
+        c = conn.cursor()
+        ts = trgt.timestamp()
+        hsh = hash(trgt)
+
+        entry = c.execute('SELECT * FROM state WHERE hash=?', (hsh,)).fetchone()
+        if entry:
+            c.execute('UPDATE state SET timestamp=?, path=? WHERE hash=?', (ts, entry[3], hsh))
         else:
-            hsh = hash(target)
-        if c.execute('SELECT * FROM state WHERE name=?', (name,)).fetchone():
-            c.execute('UPDATE state SET timestamp=?, hash=? WHERE name=?', (ts, hsh, name))
-        else:
-            c.execute('INSERT INTO state (name, timestamp, hash) VALUES (?, ?, ?)', (name, ts, hsh))
+            if isinstance(trgt, target.PyTarget):
+                pth = tempfile.NamedTemporaryFile(delete=False).name
+            else:
+                pth = ""
+            c.execute('INSERT INTO state (hash, timestamp, path) VALUES (?, ?, ?)', (hsh, ts, pth))
         c.close()
         conn.commit()
         conn.close()

@@ -4,6 +4,7 @@ import collections
 
 from .log import get_logger
 from .input import Input
+import target as target
 
 logger = get_logger()
 

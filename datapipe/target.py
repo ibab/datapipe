@@ -3,19 +3,21 @@ from operator import getitem
 import functools
 import dask
 import dask.threaded
+import joblib
 import os
+import numpy
 
 from .log import get_logger
 logger = get_logger()
 
 from .history import History
-from .task import Task, get_current_task
+import task
 
 history = History('.history.db')
 
 class Target(object):
     def __init__(self):
-        self.parent = get_current_task()
+        self.parent = task.get_current_task()
         self.force_update = False
 
     def exists(self):
@@ -30,13 +32,29 @@ class Target(object):
         pass
 
     def __repr__(self):
-        return self.__class__.__name__ + '(' + repr(self.get()) + ')'
+        return self.__class__.__name__ + '(...)'
+
+    def _get_props(self):
+        # We take the index of this target
+        # in its parent's output to derive a hash
+        if not self.parent is None:
+            outputs = self.parent.outputs()
+            if isinstance(outputs, collections.Iterable):
+                idx = outputs.index(self)
+            else:
+                # If it's the only output, we use a fixed string
+                idx = "na"
+            par = self.parent
+        else:
+            par = "na"
+            idx = "na"
+        return ((par, idx, repr(self)))
 
     def __eq__(self, other):
-        return repr(self) == repr(other)
+        return self is other
 
     def __hash__(self):
-        return hash((self.parent, repr(self)))
+        return hash(self._get_props())
 
     def has_changed(self):
         global history
@@ -45,6 +63,7 @@ class Target(object):
             return True
 
         changed =  history.target_changed(self)
+
         return changed
 
 class LocalFile(Target):
@@ -72,6 +91,64 @@ class LocalFile(Target):
     def close(self):
         self._handle.close()
 
+    def __repr__(self):
+        return self.__class__.__name__ + '(' + repr(self.path()) + ')'
+
+class PyTarget(Target):
+    def __init__(self, obj=None):
+        self._obj = obj
+        super(PyTarget, self).__init__()
+        if not obj is None:
+            self.set(obj)
+
+    def _get_props(self):
+        # We take the index of this target
+        # in its parent's output to derive a hash
+        if not self.parent is None:
+            outputs = self.parent.outputs()
+            if isinstance(outputs, collections.Iterable):
+                idx = outputs.index(self)
+            else:
+                # If it's the only output, we use a fixed string
+                idx = "na"
+            par = self.parent
+        else:
+            par = "na"
+            idx = "na"
+
+        if isinstance(self._obj, numpy.ndarray):
+            obj = str(self._obj.data)
+        elif isinstance(self._obj, list):
+            obj = str(self._obj)
+        else:
+            obj = self._obj
+        return ((par, idx, obj, repr(self)))
+
+    def _get_entry(self):
+        global history
+        return history.get_target(self)
+
+    def _set_entry(self):
+        global history
+        return history.add_target(self)
+
+    def exists(self):
+        ret = self._get_entry()
+        return ret and os.path.exists(ret[3])
+
+    def get(self):
+        idx, hsh, ts, path = self._get_entry()
+        return joblib.load(path)
+
+    def set(self, obj):
+        global history
+        self._set_entry()
+        idx, hsh, ts, path = self._get_entry()
+        joblib.dump(obj, path)
+
+    def __repr__(self):
+        return  self.__class__.__name__ + '(object)'
+
 def require(target, workers=1, update_from=None):
     global history
 
@@ -84,7 +161,7 @@ def require(target, workers=1, update_from=None):
     # Create dask
     d = {}
 
-    for t in Task.tasks:
+    for t in task.Task.tasks:
         inputs = t.inputs()
         outputs = t.outputs()
         if not isinstance(outputs, collections.Iterable):
