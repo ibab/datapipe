@@ -12,5 +12,6 @@ setup(name='datapipe',
       install_requires=[
           'six',
           'dask',
+          'joblib',
       ],
       zip_safe=False)
