@@ -1,6 +1,7 @@
 import six
 import types
 import collections
+import inspect
 
 from .log import get_logger
 from .input import Input
@@ -122,7 +123,10 @@ class Task:
         return [(input_name, result[input_name]) for input_name, input_obj in inputs]
 
     def __hash__(self):
-        return hash(self.input_args)
+        return hash((self.input_args,
+                     '\n'.join(inspect.getsourcelines(self.user_outputs)[0]),
+                     '\n'.join(inspect.getsourcelines(self.user_run)[0]),
+                   ))
 
     def __eq__(self, other):
         return repr(self) == repr(other)
