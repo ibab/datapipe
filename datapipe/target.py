@@ -149,14 +149,19 @@ class PyTarget(Target):
     def __repr__(self):
         return  self.__class__.__name__ + '(object)'
 
-def require(target, workers=1, update_from=None):
+def require(targets, workers=1, update_from=None):
     global history
+
+    if isinstance(targets, collections.Iterable):
+        targets = list(targets)
+    else:
+        targets = [targets]
 
     if update_from:
         update_from.force_update = True
-        logger.info('REQUIRE {} UPDATE FROM {}'.format(target, update_from))
+        logger.info('REQUIRE {} UPDATE FROM {}'.format(', '.join(map(str, targets)), update_from))
     else:
-        logger.info('REQUIRE {}'.format(target))
+        logger.info('REQUIRE {}'.format(', '.join(map(str, targets))))
 
     # Create dask
     d = {}
@@ -175,8 +180,8 @@ def require(target, workers=1, update_from=None):
                 d[inp] = None
 
     tasklist = []
-    targets = dask.core.toposort(d)
-    for tar in targets:
+    trgts = dask.core.toposort(d)
+    for tar in trgts:
         if tar.parent is None or tar.parent in tasklist:
             continue
         tasklist.append(tar.parent)
@@ -220,7 +225,7 @@ def require(target, workers=1, update_from=None):
             if isinstance(o, Target):
                 d[o] = (runner,) + t.inputs()
 
-    dask.threaded.get(dask.optimize.cull(d, target), target, nthreads=workers)
+    dask.threaded.get(dask.optimize.cull(d, targets), targets, nthreads=workers)
 
-    logger.info('DONE {}'.format(target))
+    logger.info('DONE {}'.format(', '.join(map(str, targets))))
 
