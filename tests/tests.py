@@ -1,5 +1,20 @@
 from datapipe import *
 
+from datapipe.targets.mock import *
+
+def test_task():
+
+    class TestTask(Task):
+        inp = Input()
+
+        def outputs(self):
+            return MockTarget()
+
+        def run(self):
+            pass
+
+    TestTask(MockTarget()).run()
+
 def test_example():
 
     # Create test file

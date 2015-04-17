@@ -2,6 +2,7 @@ import six
 import types
 import collections
 import inspect
+import numpy as np
 
 from .log import get_logger
 from .input import Input
@@ -9,14 +10,58 @@ from . import target
 
 logger = get_logger()
 
-class Task:
+def full_traverse(obj):
+    if isinstance(obj, collections.Iterable):
+        if isinstance(obj, dict):
+            obj = sorted(list(obj.values()))
+        if isinstance(obj, str):
+            print(obj)
+            yield obj
+            return
+        for obj_ in obj:
+            for o in full_traverse(obj_):
+                yield o
+    else:
+        yield obj
 
+def _pprint(params, offset=0, printer=repr):
+    # Do a multi-line justified repr:
+    options = np.get_printoptions()
+    np.set_printoptions(precision=5, threshold=64, edgeitems=2)
+    params_list = list()
+    this_line_length = offset
+    line_sep = ',\n' + (1 + offset) * ' '
+    for i, (k, v) in enumerate(params):
+        if type(v) is float:
+            # use str for representing floating point numbers
+            # this way we get consistent representation across
+            # architectures and versions.
+            this_repr = '%s=%s' % (k, str(v))
+        else:
+            # use repr of the rest
+            this_repr = '%s=%s' % (k, printer(v))
+        if len(this_repr) > 500:
+            this_repr = this_repr[:300] + '...' + this_repr[-100:]
+        if i > 0:
+            if (this_line_length + len(this_repr) >= 75 or '\n' in this_repr):
+                params_list.append(line_sep)
+                this_line_length = len(line_sep)
+            else:
+                params_list.append(', ')
+                this_line_length += 2
+        params_list.append(this_repr)
+        this_line_length += len(this_repr)
+
+    np.set_printoptions(**options)
+    lines = ''.join(params_list)
+    # Strip trailing space to avoid nightmare in doctests
+    lines = '\n'.join(l.rstrip(' ') for l in lines.split('\n'))
+    return lines
+
+class Task:
     tasks = []
 
     def __init__(self, *args, **kwargs):
-        global current_task
-        current_task = self
-
         inputs = self.get_inputs()
         input_values = self.get_input_values(inputs, args, kwargs)
         # Set all values on class instance
@@ -30,11 +75,15 @@ class Task:
 
         # Add custom modifications to output()
         self.user_outputs = self.outputs
-        # cache outputs
-        global current_task
-        current_task = self
         cached_outputs = self.user_outputs()
-        current_task = None
+
+        for i, outp in enumerate(full_traverse(cached_outputs)):
+            outp.unique_key = i
+            if not outp.parent is None:
+                raise ValueError(
+                        'Target {} produced by both '
+                        '{} and {}'.format(outp, outp.parent, self))
+            outp.parent = self
 
         def outputs(self):
             return cached_outputs
@@ -42,6 +91,7 @@ class Task:
         self.outputs = types.MethodType(outputs, self)
 
         # Add custom modifications to run()
+        # TODO move the logging and output checking somewhere else
         def run(self):
             logger.info('RUNNING {}'.format(self))
             self.user_run()
@@ -58,16 +108,12 @@ class Task:
 
         self.input_args = tuple(value for key, value in input_values)
 
-        current_task = None
-
         self.__class__.tasks.append(self)
 
     def __repr__(self):
-        result = []
-        for k, w in self.input_values:
-            result.append('{}={}'.format(k, repr(w)))
-
-        return self.__class__.__name__ + '(' + ', '.join(result) + ')'
+        class_name = self.__class__.__name__
+        return '{}({})'.format(class_name, _pprint(self.input_values,
+                                                   offset=len(class_name)))
 
     def inputs(self):
         return self.input_args
@@ -117,7 +163,7 @@ class Task:
         for input_name, input_obj in inputs:
             if input_name not in result:
                 if input_obj.default is None:
-                    raise ValueError()
+                    raise ValueError("Input '{}' has no default and no value was provided.".format(input_name))
                 result[input_name] = input_obj.default
 
         return [(input_name, result[input_name]) for input_name, input_obj in inputs]
@@ -130,7 +176,6 @@ class Task:
 
     def __eq__(self, other):
         return repr(self) == repr(other)
-
 
 current_task = None
 
