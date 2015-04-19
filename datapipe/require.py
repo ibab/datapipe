@@ -1,78 +1,82 @@
-import dask
+from . import dask
 import collections
+import functools
 
 from .history import History
 from .task import Task
 from .target import Target
 from .log import get_logger
+from .util import full_traverse
 
 logger = get_logger()
 
-def require(targets, workers=1, update_from=None):
-    history = History('.history.db')
+def require(targets, workers=1):
+
+    Target.create_store()
 
     if isinstance(targets, collections.Iterable):
         targets = list(targets)
     else:
         targets = [targets]
 
-    if update_from:
-        update_from.force_update = True
-        logger.info('REQUIRE {} UPDATE FROM {}'.format(', '.join(map(str, targets)), update_from))
-    else:
-        logger.info('REQUIRE {}'.format(', '.join(map(str, targets))))
+    needs_update = set()
+
+    for trg in Target.targets:
+        if trg.is_damaged():
+            needs_update.add(trg)
 
     # Create dask
     d = {}
 
     for t in Task.tasks:
-        inputs = t.inputs()
+        inputs = list(t.inputs())
         outputs = t.outputs()
+
         if not isinstance(outputs, collections.Iterable):
-            outputs = (outputs,)
+            outputs = [outputs,]
+        else:
+            outputs = list(outputs)
+
+        for i, inp in enumerate(inputs):
+            if isinstance(inp, list):
+                inputs[i] = tuple(inp)
+        for i, outp in enumerate(outputs):
+            if isinstance(outp, list):
+                inputs[i] = tuple(outp)
 
         for i, o in enumerate(outputs):
-            d[o] = (id,) + inputs
+            d[o] = (id,) + tuple(full_traverse(inputs))
 
-        for inp in inputs:
+        for inp in full_traverse(inputs):
             if isinstance(inp, Target) and not inp.parent:
                 d[inp] = None
 
     tasklist = []
-    trgts = dask.core.toposort(d)
+    trgts = dask.toposort(d)
     for tar in trgts:
-        if tar.parent is None or tar.parent in tasklist:
+        if (not tar.parent) or (tar.parent in tasklist):
             continue
         tasklist.append(tar.parent)
 
     for t in tasklist:
         outputs = t.outputs()
+        inputs = t.inputs()
         if not isinstance(outputs, collections.Iterable):
             outputs = (outputs,)
 
-        do_update = any(map(lambda i: isinstance(i, Target) and i.has_changed(), t.inputs()))
-        do_update = do_update or any(map(lambda o: isinstance(o, Target) and not o.exists(), outputs))
-        if do_update:
+        outputs_need_update = any(map(lambda o: isinstance(o, Target) and o in needs_update, full_traverse(outputs)))
+        inputs_need_update = any(map(lambda i: isinstance(i, Target) and i in needs_update, full_traverse(inputs)))
+
+        if outputs_need_update or inputs_need_update:
             for o in outputs:
                 if isinstance(o, Target):
-                    o.force_update = True
+                    needs_update.add(o)
             # An input has changed: this task needs to be executed
             def runner(t, outputs, *args):
-                for i in t.inputs():
-                    if isinstance(i, Target):
-                        assert i.exists()
-                        history.add_target(i)
                 t.run()
-                for o in outputs:
-                    if not o.exists():
-                        raise RuntimeError('Task {} did not create target {}'.format(t, o))
-                for o in outputs:
-                    if isinstance(o, Target):
-                        history.add_target(o)
         else:
             # We can skip this task
             def runner(t, outputs, *args):
-                logger.info('SKIPPING {}'.format(t))
                 pass
 
         # Bind current task to runner
@@ -81,9 +85,13 @@ def require(targets, workers=1, update_from=None):
 
         for o in outputs:
             if isinstance(o, Target):
-                d[o] = (runner,) + t.inputs()
+                d[o] = (runner,) + tuple(full_traverse(t.inputs()))
 
-    dask.threaded.get(dask.optimize.cull(d, targets), targets, nthreads=workers)
+    dask.get(dask.cull(d, targets), targets, nthreads=workers)
+
+    Target.clear_store()
+    for trg in Target.targets:
+        trg.store()
 
     logger.info('DONE {}'.format(', '.join(map(str, targets))))
 

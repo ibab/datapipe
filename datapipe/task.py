@@ -3,26 +3,15 @@ import types
 import collections
 import inspect
 import numpy as np
+import dill
+import hashlib
 
 from .log import get_logger
 from .input import Input
+from .util import full_traverse, freeze_object
 from . import target
 
 logger = get_logger()
-
-def full_traverse(obj):
-    if isinstance(obj, collections.Iterable):
-        if isinstance(obj, dict):
-            obj = sorted(list(obj.values()))
-        if isinstance(obj, str):
-            print(obj)
-            yield obj
-            return
-        for obj_ in obj:
-            for o in full_traverse(obj_):
-                yield o
-    else:
-        yield obj
 
 def _pprint(params, offset=0, printer=repr):
     # Do a multi-line justified repr:
@@ -62,6 +51,7 @@ class Task:
     tasks = []
 
     def __init__(self, *args, **kwargs):
+        self._checksum = ''
         inputs = self.get_inputs()
         input_values = self.get_input_values(inputs, args, kwargs)
         # Set all values on class instance
@@ -69,7 +59,7 @@ class Task:
             setattr(self, key, value)
         # Register args and kwargs as an attribute on the class. Might be useful
         self.input_values = input_values
-        self.input_args = tuple(value for key, value in input_values)
+        self.input_args = tuple(full_traverse(value for key, value in input_values))
 
         self.user_run = self.run
 
@@ -79,7 +69,7 @@ class Task:
 
         for i, outp in enumerate(full_traverse(cached_outputs)):
             outp.unique_key = i
-            if not outp.parent is None:
+            if outp.parent:
                 raise ValueError(
                         'Target {} produced by both '
                         '{} and {}'.format(outp, outp.parent, self))
@@ -98,9 +88,6 @@ class Task:
             out = self.outputs()
             if not isinstance(out, collections.Iterable):
                 out = [out]
-            for o in out:
-                if not o.exists():
-                    raise RuntimeError('Output {} not created after running task!'.format(o))
 
             logger.info('FINISHED {}'.format(self))
 
@@ -112,8 +99,10 @@ class Task:
 
     def __repr__(self):
         class_name = self.__class__.__name__
-        return '{}({})'.format(class_name, _pprint(self.input_values,
-                                                   offset=len(class_name)))
+        params = ', '.join(map(lambda tup: '{}={}'.format(tup[0], tup[1]), self.input_values))
+        #return '{}({})'.format(class_name, _pprint(self.input_values,
+        #                                           offset=len(class_name)))
+        return '{}({})'.format(class_name, params)
 
     def inputs(self):
         return self.input_args
@@ -147,16 +136,16 @@ class Task:
         positional_inputs = [(n, p) for n, p in inputs]
         for i, arg in enumerate(args):
             if i >= len(positional_inputs):
-                raise ValueError()
+                raise ValueError("Too many positional arguments")
             input_name, input_obj = positional_inputs[i]
             result[input_name] = arg
 
         # optional arguments
         for input_name, arg in six.iteritems(kwargs):
             if input_name in result:
-                raise ValueError()
+                raise ValueError("Input {} appears twice in call to Task".format(input_name))
             if input_name not in inputs_dict:
-                raise ValueError()
+                raise ValueError("Unknown Input: {}".format(input_name))
             result[input_name] = arg
 
         # substitute defaults
@@ -167,19 +156,30 @@ class Task:
                 result[input_name] = input_obj.default
 
         return [(input_name, result[input_name]) for input_name, input_obj in inputs]
+    
+    def checksum(self):
+        if self._checksum:
+            return self._checksum
+        else:
+            m = hashlib.sha1()
+            for ia in full_traverse(self.input_args):
+                if isinstance(ia, target.Target):
+                    m.update(ia.checksum().encode('utf-8'))
+                else:
+                    m.update(dill.dumps(ia))
+            m.update('\n'.join(inspect.getsourcelines(self.user_outputs)[0]).encode('utf-8'))
+            m.update('\n'.join(inspect.getsourcelines(self.user_run)[0]).encode('utf-8'))
+            self._checksum = m.hexdigest()
+            return m.hexdigest()
 
     def __hash__(self):
-        return hash((self.input_args,
+        return hash((dill.dumps(self.input_args),
                      '\n'.join(inspect.getsourcelines(self.user_outputs)[0]),
                      '\n'.join(inspect.getsourcelines(self.user_run)[0]),
                    ))
 
     def __eq__(self, other):
-        return repr(self) == repr(other)
+        return hash(self) == hash(other)
+                    
 
-current_task = None
-
-def get_current_task():
-    global current_task
-    return current_task
 

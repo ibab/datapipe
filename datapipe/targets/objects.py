@@ -1,34 +1,45 @@
 from ..target import Target
+import hashlib
+import dill
+import joblib
 
 class PyTarget(Target):
-    def __init__(self, obj=None):
+    def __init__(self, name, obj=None):
+        self._name = name
         self._obj = obj
         super(PyTarget, self).__init__()
         if not obj is None:
             self.set(obj)
 
-    def _get_entry(self):
-        global history
-        return history.get_target(self)
-
-    def _set_entry(self):
-        global history
-        return history.add_target(self)
-
-    def exists(self):
-        ret = self._get_entry()
-        return ret and os.path.exists(ret[3])
+    def identifier(self):
+        return self._name
 
     def get(self):
-        idx, hsh, ts, path = self._get_entry()
-        return joblib.load(path)
+        return self._obj
 
     def set(self, obj):
-        global history
-        self._set_entry()
-        idx, hsh, ts, path = self._get_entry()
-        joblib.dump(obj, path)
+        self._obj = obj
 
-    def __repr__(self):
-        return  self.__class__.__name__ + '(object)'
+    def checksum(self):
+        digest = super(PyTarget, self).checksum()
+        if not self._obj is None:
+            m = hashlib.sha1()
+            m.update(digest.encode())
+            m.update(joblib.hash(self._obj).encode())
+            return m.hexdigest()
+        else:
+            return digest
+
+    def is_damaged(self):
+
+        if not self._obj is None:
+            return False
+
+        stored = self.stored()
+        if stored and not stored._obj is None:
+            self._obj = stored._obj
+            return False
+
+        return True
+
 
