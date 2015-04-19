@@ -13,5 +13,6 @@ setup(name='datapipe',
           'six',
           'dask',
           'joblib',
+          'dill',
       ],
       zip_safe=False)
