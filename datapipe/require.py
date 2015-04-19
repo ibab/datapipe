@@ -73,6 +73,8 @@ def require(targets, workers=1):
             # An input has changed: this task needs to be executed
             def runner(t, outputs, *args):
                 t.run()
+                for trg in full_traverse(t.outputs()):
+                    trg.store()
         else:
             # We can skip this task
             def runner(t, outputs, *args):
