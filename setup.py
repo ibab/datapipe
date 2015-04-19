@@ -8,7 +8,7 @@ setup(name='datapipe',
       author='Igor Babuschkin',
       author_email='igor@babuschk.in',
       license='MIT',
-      packages=['datapipe'],
+      packages=['datapipe', 'datapipe.targets'],
       install_requires=[
           'six',
           'dask',
