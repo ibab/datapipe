@@ -2,7 +2,6 @@ from . import dask
 import collections
 import functools
 
-from .history import History
 from .task import Task
 from .target import Target
 from .log import get_logger
