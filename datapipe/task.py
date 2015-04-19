@@ -3,8 +3,8 @@ import types
 import collections
 import inspect
 import numpy as np
-import dill
 import hashlib
+import joblib
 
 from .log import get_logger
 from .input import Input
@@ -164,16 +164,16 @@ class Task:
             m = hashlib.sha1()
             for ia in full_traverse(self.input_args):
                 if isinstance(ia, target.Target):
-                    m.update(ia.checksum().encode('utf-8'))
+                    m.update(ia.checksum().encode())
                 else:
-                    m.update(dill.dumps(ia))
+                    m.update(joblib.hash(ia).encode())
             m.update('\n'.join(inspect.getsourcelines(self.user_outputs)[0]).encode('utf-8'))
             m.update('\n'.join(inspect.getsourcelines(self.user_run)[0]).encode('utf-8'))
             self._checksum = m.hexdigest()
             return m.hexdigest()
 
     def __hash__(self):
-        return hash((dill.dumps(self.input_args),
+        return hash((tuple(map(joblib.hash, self.input_args)),
                      '\n'.join(inspect.getsourcelines(self.user_outputs)[0]),
                      '\n'.join(inspect.getsourcelines(self.user_run)[0]),
                    ))
