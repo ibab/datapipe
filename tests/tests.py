@@ -1,19 +1,55 @@
-from datapipe import *
+import logging
+logger = logging.getLogger('datapipe')
+logger.setLevel(logging.WARN)
 
+from datapipe import *
 from datapipe.targets.mock import *
 
-def test_task():
+class TestTask(Task):
+    inp = Input()
 
-    class TestTask(Task):
-        inp = Input()
+    def outputs(self):
+        outs = []
+        for i, elem in enumerate(self.inp):
+            outs.append(MockTarget('out_{}'.format(i)))
+        return outs
+    
+    def run(self):
+        pass
 
-        def outputs(self):
-            return MockTarget()
+# New tasks are defined by inheriting from an existing Task
+class AddLines(Task):
 
-        def run(self):
-            pass
+    # The inputs can be anything the task depends on:
+    # Local and remote files, python objects, numpy arrays, ...
+    infile = Input()
+    count = Input(default=1)
+    text = Input(default='This is some text')
 
-    TestTask(MockTarget()).run()
+    # The outputs are defined dynamically (with access to the inputs)
+    def outputs(self):
+        return LocalFile(self.infile.path().replace('.txt', '.AddLines.txt'))
+
+    # The actual task is defined as a function with access to inputs and outputs
+    def run(self):
+        with self.infile.open() as f:
+            with self.outputs().open('w') as g:
+                g.write(f.read())
+                for i in range(self.count):
+                    g.write(self.text + '\n')
+
+def test_simpletask():
+    target = MockTarget('test1')
+    TestTask([target]).run()
+    assert hash(TestTask([target])) == hash(TestTask([target]))
+    assert TestTask([target]) == TestTask([target])
+    assert hash(MockTarget('test1')) == hash(MockTarget('test1'))
+    assert MockTarget('test1') == MockTarget('test1')
+
+def test_several_targets():
+    inputs = [MockTarget('input_1'), MockTarget('input_2')]
+    task = TestTask(inputs)
+    task.run()
 
 def test_example():
 
@@ -22,26 +58,6 @@ def test_example():
 
     from datapipe import Task, Input, LocalFile, require
 
-    # New tasks are defined by inheriting from an existing Task
-    class AddLines(Task):
-
-        # The inputs can be anything the task depends on:
-        # Local and remote files, python objects, numpy arrays, ...
-        infile = Input()
-        count = Input(default=1)
-        text = Input(default='This is some text')
-
-        # The outputs are defined dynamically (with access to the inputs)
-        def outputs(self):
-            return LocalFile(self.infile.path().replace('.txt', '.AddLines.txt'))
-
-        # The actual task is defined as a function with access to inputs and outputs
-        def run(self):
-            with self.infile.open() as f:
-                with self.outputs().open('w') as g:
-                    g.write(f.read())
-                    for i in range(self.count):
-                        g.write(self.text + '\n')
 
     # Create initial Targets
     infile = LocalFile('/tmp/input.txt')

@@ -25,6 +25,7 @@ class LocalFile(Target):
         self._handle.close()
 
     def store(self):
+        self._handle = None
         if self.exists():
             self._timestamp = os.path.getmtime(self._path)
         super(LocalFile, self).store()
