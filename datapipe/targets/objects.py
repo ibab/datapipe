@@ -20,26 +20,15 @@ class PyTarget(Target):
     def set(self, obj):
         self._obj = obj
 
-    def checksum(self):
-        digest = super(PyTarget, self).checksum()
-        if not self._obj is None:
-            m = hashlib.sha1()
-            m.update(digest.encode())
-            m.update(joblib.hash(self._obj).encode())
-            return m.hexdigest()
-        else:
-            return digest
-
     def is_damaged(self):
 
-        if not self._obj is None:
-            return False
-
         stored = self.stored()
-        if stored and not stored._obj is None:
-            self._obj = stored._obj
-            return False
-
-        return True
-
+        if stored:
+            if self._obj is None:
+                self._obj = stored._obj
+                return stored._obj is None
+            else:
+                return joblib.hash(self._obj) == joblib.hash(stored._obj)
+        else:
+            return self._obj is None
 
