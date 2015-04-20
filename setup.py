@@ -14,5 +14,6 @@ setup(name='datapipe',
           'dask',
           'joblib',
           'dill',
+          'leveldb',
       ],
       zip_safe=False)

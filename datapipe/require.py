@@ -11,8 +11,6 @@ logger = get_logger()
 
 def require(targets, workers=1):
 
-    Target.create_store()
-
     if isinstance(targets, collections.Iterable):
         targets = list(targets)
     else:

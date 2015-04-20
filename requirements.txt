@@ -2,3 +2,4 @@ six
 dask
 joblib
 dill
+leveldb
