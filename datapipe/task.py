@@ -5,6 +5,7 @@ import inspect
 import numpy as np
 import hashlib
 import joblib
+import marshal
 
 from .log import get_logger
 from .input import Input
@@ -156,29 +157,30 @@ class Task:
 
         return [(input_name, result[input_name]) for input_name, input_obj in inputs]
     
+    def get_code(self, func):
+        return marshal.dumps(func.__code__.co_code)
+
     def checksum(self):
-        if self._checksum:
-            return self._checksum
-        else:
+        if not self._checksum:
             m = hashlib.sha1()
             for ia in full_traverse(self.input_args):
                 if isinstance(ia, target.Target):
-                    m.update(ia.checksum().encode())
+                    m.update(ia.checksum())
                 else:
                     m.update(joblib.hash(ia).encode())
-            m.update('\n'.join(inspect.getsourcelines(self.user_outputs)[0]).encode('utf-8'))
-            m.update('\n'.join(inspect.getsourcelines(self.user_run)[0]).encode('utf-8'))
-            self._checksum = m.hexdigest()
-            return m.hexdigest()
+            m.update(self.get_code(self.user_outputs))
+            m.update(self.get_code(self.user_outputs))
+            self._checksum = m.digest()
+        return self._checksum
 
-    def __hash__(self):
-        return hash((tuple(map(joblib.hash, self.input_args)),
-                     '\n'.join(inspect.getsourcelines(self.user_outputs)[0]),
-                     '\n'.join(inspect.getsourcelines(self.user_run)[0]),
-                   ))
+    #def __hash__(self):
+    #    return hash((tuple(map(joblib.hash, self.input_args)),
+    #                 '\n'.join(inspect.getsourcelines(self.user_outputs)[0]),
+    #                 '\n'.join(inspect.getsourcelines(self.user_run)[0]),
+    #               ))
 
-    def __eq__(self, other):
-        return hash(self) == hash(other)
+    #def __eq__(self, other):
+    #    return hash(self) == hash(other)
                     
 
 

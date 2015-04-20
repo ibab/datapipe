@@ -48,12 +48,14 @@ def require(targets, workers=1):
             if isinstance(inp, Target) and not inp.parent:
                 d[inp] = None
 
+    known_tasks = set()
     tasklist = []
     trgts = dask.toposort(d)
     for tar in trgts:
-        if (not tar.parent) or (tar.parent in tasklist):
+        if (not tar.parent) or (tar.parent in known_tasks):
             continue
         tasklist.append(tar.parent)
+        known_tasks.add(tar.parent)
 
     for t in tasklist:
         outputs = t.outputs()

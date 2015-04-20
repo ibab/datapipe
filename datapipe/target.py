@@ -21,7 +21,7 @@ class Target(object):
         self._checksum = ''
 
         if not self in self.__class__.targets:
-            self.targets.append(self)
+            self.__class__.targets.append(self)
 
     @property
     def parent(self):
@@ -72,25 +72,14 @@ class Target(object):
         cls.db.Write(batch, sync=True)
 
     def checksum(self):
-        if self._checksum:
-            return self._checksum
-        else:
+        if not self._checksum:
             m = hashlib.sha1()
             m.update(self.__class__.__name__.encode())
             if self._parent:
-                m.update(self._parent.checksum().encode())
+                m.update(self._parent.checksum())
             m.update(self.identifier().encode())
-            self._checksum = m.hexdigest()
-            return m.hexdigest()
+            self._checksum = m.digest()
+        return self._checksum
 
-    def __hash__(self):
-        if not self._hash:
-            self._hash = hash((self.__class__.__name__, self._parent, self.identifier()))
-        return self._hash
-
-    def __eq__(self, other):
-        return all([self.__class__.__name__ == other.__class__.__name__,
-                    self._parent == other._parent,
-                    self.identifier() == other.identifier()])
 
 
