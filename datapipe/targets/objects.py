@@ -28,7 +28,7 @@ class PyTarget(Target):
                 self._obj = stored._obj
                 return stored._obj is None
             else:
-                return joblib.hash(self._obj) == joblib.hash(stored._obj)
+                return joblib.hash(self._obj) != joblib.hash(stored._obj)
         else:
             return self._obj is None
 

@@ -68,7 +68,6 @@ class Task:
         cached_outputs = self.user_outputs()
 
         for i, outp in enumerate(full_traverse(cached_outputs)):
-            outp.unique_key = i
             if outp.parent:
                 raise ValueError(
                         'Target {} produced by both '

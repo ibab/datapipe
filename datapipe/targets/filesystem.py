@@ -18,11 +18,7 @@ class LocalFile(Target):
         return self._path
 
     def open(self, *args, **kwargs):
-        self._handle = open(self._path, *args, **kwargs)
-        return self._handle
-
-    def close(self):
-        self._handle.close()
+        return open(self._path, *args, **kwargs)
 
     def store(self):
         self._handle = None
