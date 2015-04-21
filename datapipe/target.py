@@ -3,6 +3,7 @@ import six
 import abc
 import leveldb
 import hashlib
+import simplejson
 
 from .log import get_logger
 logger = get_logger()
@@ -11,17 +12,18 @@ logger = get_logger()
 class Target(object):
 
     targets = []
+    known_targets = set()
     db_path = '.datapipe.db'
     db = leveldb.LevelDB(db_path)
 
     def __init__(self):
         self._parent = ''
-        self.force_update = False
-        self._hash = 0
         self._checksum = ''
+        self._memory = {}
 
-        if not self in self.__class__.targets:
+        if not self in self.__class__.known_targets:
             self.__class__.targets.append(self)
+            self.__class__.known_targets.add(self)
 
     @property
     def parent(self):
@@ -52,20 +54,20 @@ class Target(object):
         '''
         pass
 
+    def store(self, batch=None):
+        if batch is None:
+            db = self.__class__.db
+        else:
+            db = batch
+        db.Put(self.checksum(), simplejson.dumps(self._memory).encode('utf-8'))
+
     def stored(self):
         cls = self.__class__
         try:
             data = cls.db.Get(self.checksum())
-            return dill.loads(data)
+            return simplejson.loads(data)
         except KeyError:
             return None
-
-    def store(self, batch=None):
-        cls = self.__class__
-        if batch:
-            batch.Put(self.checksum(), dill.dumps(self))
-        else:
-            cls.db.Put(self.checksum(), dill.dumps(self))
 
     @classmethod
     def clear_store(cls):
