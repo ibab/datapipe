@@ -41,10 +41,6 @@ class AddLines(Task):
 def test_simpletask():
     target = MockTarget('test1')
     TestTask([target]).run()
-    assert hash(TestTask([target])) == hash(TestTask([target]))
-    assert TestTask([target]) == TestTask([target])
-    assert hash(MockTarget('test1')) == hash(MockTarget('test1'))
-    assert MockTarget('test1') == MockTarget('test1')
 
 def test_several_targets():
     inputs = [MockTarget('input_1'), MockTarget('input_2')]
