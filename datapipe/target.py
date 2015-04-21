@@ -65,7 +65,7 @@ class Target(object):
         cls = self.__class__
         try:
             data = cls.db.Get(self.checksum())
-            return simplejson.loads(data)
+            return simplejson.loads(data.decode('utf-8'))
         except KeyError:
             return None
 

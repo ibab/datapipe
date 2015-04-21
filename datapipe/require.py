@@ -30,6 +30,9 @@ def require(targets, workers=1):
         inputs = list(t.inputs())
         outputs = t.outputs()
 
+        inputs_ = full_traverse(inputs)
+        outputs_ = full_traverse(outputs)
+
         if not isinstance(outputs, collections.Iterable):
             outputs = [outputs,]
         else:
@@ -43,9 +46,9 @@ def require(targets, workers=1):
                 inputs[i] = tuple(outp)
 
         for i, o in enumerate(outputs):
-            d[o] = (id,) + tuple(full_traverse(inputs))
+            d[o] = (id,) + tuple(inputs_)
 
-        for inp in full_traverse(inputs):
+        for inp in inputs_:
             if isinstance(inp, Target) and not inp.parent:
                 d[inp] = None
 
@@ -61,11 +64,14 @@ def require(targets, workers=1):
     for t in tasklist:
         outputs = t.outputs()
         inputs = t.inputs()
+        inputs_ = full_traverse(inputs)
+        outputs_ = full_traverse(outputs)
+
         if not isinstance(outputs, collections.Iterable):
             outputs = (outputs,)
 
-        outputs_need_update = any(map(lambda o: isinstance(o, Target) and o in needs_update, full_traverse(outputs)))
-        inputs_need_update = any(map(lambda i: isinstance(i, Target) and i in needs_update, full_traverse(inputs)))
+        outputs_need_update = any(map(lambda o: isinstance(o, Target) and o in needs_update, outputs_))
+        inputs_need_update = any(map(lambda i: isinstance(i, Target) and i in needs_update, inputs_))
 
         if outputs_need_update or inputs_need_update:
             for o in outputs:
@@ -74,7 +80,7 @@ def require(targets, workers=1):
             # An input has changed: this task needs to be executed
             def runner(t, outputs, *args):
                 t.run()
-                for trg in full_traverse(t.outputs()):
+                for trg in outputs_:
                     trg.store()
         else:
             # We can skip this task
@@ -87,7 +93,7 @@ def require(targets, workers=1):
 
         for o in outputs:
             if isinstance(o, Target):
-                d[o] = (runner,) + tuple(full_traverse(t.inputs()))
+                d[o] = (runner,) + tuple(inputs_)
 
     dask.get(dask.cull(d, targets), targets, nthreads=workers)
 
