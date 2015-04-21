@@ -20,11 +20,11 @@ class LocalFile(Target):
     def open(self, *args, **kwargs):
         return open(self._path, *args, **kwargs)
 
-    def store(self):
+    def store(self, batch=None):
         self._handle = None
         if self.exists():
             self._timestamp = os.path.getmtime(self._path)
-        super(LocalFile, self).store()
+        super(LocalFile, self).store(batch)
 
     def is_damaged(self):
         stored = self.stored()

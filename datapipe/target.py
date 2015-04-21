@@ -60,16 +60,19 @@ class Target(object):
         except KeyError:
             return None
 
-    def store(self):
+    def store(self, batch=None):
         cls = self.__class__
-        cls.db.Put(self.checksum(), dill.dumps(self))
+        if batch:
+            batch.Put(self.checksum(), dill.dumps(self))
+        else:
+            cls.db.Put(self.checksum(), dill.dumps(self))
 
     @classmethod
     def clear_store(cls):
         batch = leveldb.WriteBatch()
         for k in cls.db.RangeIter(include_value=False):
             batch.Delete(k)
-        cls.db.Write(batch, sync=True)
+        cls.db.Write(batch)
 
     def checksum(self):
         if not self._checksum:

@@ -1,6 +1,7 @@
 from . import dask
 import collections
 import functools
+import leveldb
 
 from .task import Task
 from .target import Target
@@ -91,8 +92,10 @@ def require(targets, workers=1):
     dask.get(dask.cull(d, targets), targets, nthreads=workers)
 
     Target.clear_store()
+    batch = leveldb.WriteBatch()
     for trg in Target.targets:
-        trg.store()
+        trg.store(batch=batch)
+    Target.db.Write(batch)
 
     logger.info('DONE {}'.format(', '.join(map(str, targets))))
 
