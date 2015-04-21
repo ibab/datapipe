@@ -3,3 +3,4 @@ dask
 joblib
 dill
 leveldb
+simplejson

@@ -15,5 +15,6 @@ setup(name='datapipe',
           'joblib',
           'dill',
           'leveldb',
+          'simplejson',
       ],
       zip_safe=False)
