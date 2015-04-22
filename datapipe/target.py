@@ -13,7 +13,7 @@ class Target(object):
 
     targets = []
     known_targets = set()
-    db_path = '.datapipe.db'
+    db_path = '.datapipe'
     db = leveldb.LevelDB(db_path)
 
     def __init__(self):
