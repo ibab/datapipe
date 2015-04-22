@@ -83,17 +83,17 @@ require(target2)
 
 The log output for the above example looks like this:
 ```
-INFO - REQUIRE LocalFile('input.AddLines.AddLines.txt')
-INFO - RUNNING AddLines(infile=LocalFile('input.txt'), count=2, text='This is some text')
-INFO - FINISHED AddLines(infile=LocalFile('input.txt'), count=2, text='This is some text')
-INFO - RUNNING AddLines(infile=LocalFile('input.AddLines.txt'), count=3, text='This is some more text')
-INFO - FINISHED AddLines(infile=LocalFile('input.AddLines.txt'), count=3, text='This is some more text')
+INFO     REQUIRE LocalFile('input.AddLines.AddLines.txt')
+INFO     RUNNING AddLines(infile=LocalFile('input.txt'), count=2, text=This is some text)
+INFO     FINISHED AddLines
+INFO     RUNNING AddLines(infile=LocalFile('input.AddLines.txt'), count=3, text=This is some more text)
+INFO     FINISHED AddLines
+INFO     DONE LocalFile('input.AddLines.AddLines.txt')
 ```
 
 On the next run, the targets are already up and all tasks are skipped:
 ```
-INFO - REQUIRE LocalFile('input.AddLines.AddLines.txt')
-INFO - SKIPPING AddLines(infile=LocalFile('input.txt'), count=2, text='This is some text')
-INFO - SKIPPING AddLines(infile=LocalFile('input.AddLines.txt'), count=3, text='This is some more text')
+INFO     REQUIRE LocalFile('input.AddLines.AddLines.txt')
+INFO     DONE LocalFile('input.AddLines.AddLines.txt')
 ```
 
