@@ -91,6 +91,8 @@ def require(targets, workers=1):
                     logger.error('Error in execution of {}'.format(t))
                     traceback.print_exc()                   
                     sys.exit(1)
+                for trg in outputs:
+                    trg.store()
         else:
             # We can skip this task
             def runner(t, outputs, *args):
