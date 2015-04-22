@@ -22,12 +22,12 @@ class PyTarget(Target):
         self._memory['obj'] = dill.dumps(obj).encode('base64')
 
     def is_damaged(self):
-
         mem = self.stored()
-        if mem:
+        if 'obj' in mem:
             if self._obj is None:
+                self._memory['obj'] = mem['obj']
                 self._obj = dill.loads(mem['obj'].decode('base64'))
-                return stored._obj is None
+                return self._obj is None
             else:
                 return joblib.hash(self._obj) != joblib.hash(dill.loads(mem['obj'].decode('base64')))
         else:
