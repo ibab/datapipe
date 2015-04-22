@@ -80,7 +80,7 @@ def require(targets, workers=1):
             # An input has changed: this task needs to be executed
             def runner(t, outputs, *args):
                 t.run()
-                for trg in outputs_:
+                for trg in outputs:
                     trg.store()
         else:
             # We can skip this task
