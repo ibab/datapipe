@@ -93,8 +93,6 @@ class Task:
 
         self.run = types.MethodType(run, self)
 
-        self.input_args = tuple(value for key, value in input_values)
-
         self.__class__.tasks.append(self)
 
     def __repr__(self):
@@ -163,7 +161,7 @@ class Task:
     def checksum(self):
         if not self._checksum:
             m = hashlib.sha1()
-            for ia in full_traverse(self.input_args):
+            for ia in self.input_args:
                 if isinstance(ia, target.Target):
                     m.update(ia.checksum())
                 else:
@@ -172,15 +170,4 @@ class Task:
             m.update(self.get_code(self.user_outputs))
             self._checksum = m.digest()
         return self._checksum
-
-    #def __hash__(self):
-    #    return hash((tuple(map(joblib.hash, self.input_args)),
-    #                 '\n'.join(inspect.getsourcelines(self.user_outputs)[0]),
-    #                 '\n'.join(inspect.getsourcelines(self.user_run)[0]),
-    #               ))
-
-    #def __eq__(self, other):
-    #    return hash(self) == hash(other)
-                    
-
 

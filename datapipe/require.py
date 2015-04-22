@@ -30,8 +30,8 @@ def require(targets, workers=1):
         inputs = list(t.inputs())
         outputs = t.outputs()
 
-        inputs_ = full_traverse(inputs)
-        outputs_ = full_traverse(outputs)
+        inputs_ = list(full_traverse(inputs))
+        outputs_ = list(full_traverse(outputs))
 
         if not isinstance(outputs, collections.Iterable):
             outputs = [outputs,]
@@ -64,8 +64,8 @@ def require(targets, workers=1):
     for t in tasklist:
         outputs = t.outputs()
         inputs = t.inputs()
-        inputs_ = full_traverse(inputs)
-        outputs_ = full_traverse(outputs)
+        inputs_ = list(full_traverse(inputs))
+        outputs_ = list(full_traverse(outputs))
 
         if not isinstance(outputs, collections.Iterable):
             outputs = (outputs,)
@@ -74,7 +74,7 @@ def require(targets, workers=1):
         inputs_need_update = any(map(lambda i: isinstance(i, Target) and i in needs_update, inputs_))
 
         if outputs_need_update or inputs_need_update:
-            for o in outputs:
+            for o in outputs_:
                 if isinstance(o, Target):
                     needs_update.add(o)
             # An input has changed: this task needs to be executed
