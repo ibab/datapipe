@@ -34,5 +34,8 @@ class LocalFile(Target):
         if mem is None or not 'timestamp' in mem:
             return True
 
+        if not self.exists():
+            return True
+
         return self._memory['timestamp'] > mem['timestamp']
 
