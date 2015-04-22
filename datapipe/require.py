@@ -3,6 +3,7 @@ import collections
 import functools
 import leveldb
 import sys
+import traceback
 
 from .task import Task
 from .target import Target
@@ -87,11 +88,9 @@ def require(targets, workers=1):
                 try:
                     t.run()
                 except:
-                    e = sys.exc_info()[0]
                     logger.error('Error in execution of {}'.format(t))
-                    raise e
-                for trg in outputs:
-                    trg.store()
+                    traceback.print_exc()                   
+                    sys.exit(1)
         else:
             # We can skip this task
             def runner(t, outputs, *args):
