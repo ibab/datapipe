@@ -95,6 +95,10 @@ def require(targets, workers=1):
             if isinstance(o, Target):
                 d[o] = (runner,) + tuple(inputs_)
 
+    # Store all initial targets
+    for trg in Target.targets:
+        if not trg.parent:
+            trg.store()
     dask.get(dask.cull(d, targets), targets, nthreads=workers)
 
     Target.clear_store()
