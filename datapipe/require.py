@@ -2,6 +2,7 @@ from . import dask
 import collections
 import functools
 import leveldb
+import sys
 
 from .task import Task
 from .target import Target
@@ -11,6 +12,10 @@ from .util import full_traverse
 logger = get_logger()
 
 def require(targets, workers=1):
+
+    if not isinstance(targets, collections.Iterable):
+        targets = (targets,)
+    logger.info('REQUIRE {}'.format(', '.join(map(str, targets))))
 
     if isinstance(targets, collections.Iterable):
         targets = list(targets)
@@ -79,7 +84,12 @@ def require(targets, workers=1):
                     needs_update.add(o)
             # An input has changed: this task needs to be executed
             def runner(t, outputs, *args):
-                t.run()
+                try:
+                    t.run()
+                except:
+                    e = sys.exc_info()[0]
+                    logger.error('Error in execution of {}'.format(t))
+                    raise e
                 for trg in outputs:
                     trg.store()
         else:
