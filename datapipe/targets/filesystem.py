@@ -5,7 +5,10 @@ class LocalFile(Target):
     def __init__(self, path):
         self._path = path
         super(LocalFile, self).__init__()
-        self._timestamp = 0
+        if self.exists():
+            self._memory['timestamp'] = os.path.getmtime(self._path)
+        else:
+            self._memory['timestamp'] = 0
 
     def identifier(self):
         return self._path
@@ -16,9 +19,6 @@ class LocalFile(Target):
     def path(self):
         return self._path
 
-    def open(self, *args, **kwargs):
-        return open(self._path, *args, **kwargs)
-
     def store(self, batch=None):
         if self.exists():
             self._memory['timestamp'] = os.path.getmtime(self._path)
@@ -26,12 +26,13 @@ class LocalFile(Target):
             self._memory['timestamp'] = 0
         super(LocalFile, self).store(batch)
 
+    def open(self, *args, **kwargs):
+        return open(self._path, *args, **kwargs)
+
     def is_damaged(self):
-        stored = self.stored()
-        if stored is None:
+        mem = self.stored()
+        if mem is None or not 'timestamp' in mem:
             return True
-        if self.exists():
-            return os.path.getmtime(self._path) > stored['timestamp']
-        else:
-            return True
+
+        return self._memory['timestamp'] > mem['timestamp']
 
