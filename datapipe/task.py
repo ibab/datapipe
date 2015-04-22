@@ -89,7 +89,7 @@ class Task:
             if not isinstance(out, collections.Iterable):
                 out = [out]
 
-            logger.info('FINISHED {}'.format(self.__class__.__name__ + '()'))
+            logger.info('FINISHED {}'.format(self.__class__.__name__))
 
         self.run = types.MethodType(run, self)
 
