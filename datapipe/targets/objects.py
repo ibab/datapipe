@@ -23,7 +23,7 @@ class PyTarget(Target):
 
     def is_damaged(self):
         mem = self.stored()
-        if 'obj' in mem:
+        if mem and 'obj' in mem:
             if self._obj is None:
                 self._memory['obj'] = mem['obj']
                 self._obj = dill.loads(mem['obj'].decode('base64'))
