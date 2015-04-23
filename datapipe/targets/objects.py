@@ -2,7 +2,7 @@ from ..target import Target
 import hashlib
 import dill
 import joblib
-import binascii
+import base64
 
 class PyTarget(Target):
     def __init__(self, name, obj=None):
@@ -20,17 +20,18 @@ class PyTarget(Target):
 
     def set(self, obj):
         self._obj = obj
-        self._memory['obj'] = binascii.hexlify(dill.dumps(obj))
+        self._memory['obj'] = base64.b64encode(dill.dumps(obj))
 
     def is_damaged(self):
         mem = self.stored()
         if mem and 'obj' in mem:
             if self._obj is None:
                 self._memory['obj'] = mem['obj']
-                self._obj = dill.loads(mem['obj'].decode('base64'))
+                self._obj = dill.loads(base64.b64decode(mem['obj']))
                 return self._obj is None
             else:
-                return joblib.hash(self._obj) != joblib.hash(dill.loads(binascii.unhexlify(mem['obj'])))
+                return joblib.hash(self._obj) != \
+                       joblib.hash(dill.loads(base64.b64decode(mem['obj'])))
         else:
             return self._obj is None
 
