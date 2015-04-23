@@ -60,7 +60,7 @@ class AddLines(Task):
 
     # The outputs are defined dynamically (with access to the inputs)
     def outputs(self):
-        return LocalFile(self.infile.get().replace('.txt', '.AddLines.txt'))
+        return LocalFile(self.infile.path().replace('.txt', '.AddLines.txt'))
 
     # The actual task is defined as a function with access to inputs and outputs
     def run(self):
@@ -91,7 +91,7 @@ INFO     FINISHED AddLines
 INFO     DONE LocalFile('input.AddLines.AddLines.txt')
 ```
 
-On the next run, the targets are already up and all tasks are skipped:
+On the next run, the targets are already up to date and all tasks are skipped:
 ```
 INFO     REQUIRE LocalFile('input.AddLines.AddLines.txt')
 INFO     DONE LocalFile('input.AddLines.AddLines.txt')
