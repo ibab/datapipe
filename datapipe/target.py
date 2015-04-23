@@ -1,4 +1,3 @@
-import dill
 import six
 import abc
 import leveldb
@@ -7,6 +6,7 @@ import simplejson
 
 from .log import get_logger
 logger = get_logger()
+
 
 @six.add_metaclass(abc.ABCMeta)
 class Target(object):
@@ -21,7 +21,7 @@ class Target(object):
         self._checksum = ''
         self._memory = {}
 
-        if not self in self.__class__.known_targets:
+        if self not in self.__class__.known_targets:
             self.__class__.targets.append(self)
             self.__class__.known_targets.add(self)
 
@@ -42,7 +42,7 @@ class Target(object):
     @abc.abstractproperty
     def identifier(self):
         pass
-    
+
     @abc.abstractmethod
     def is_damaged(self):
         '''
@@ -85,6 +85,3 @@ class Target(object):
             m.update(self.identifier().encode())
             self._checksum = m.digest()
         return self._checksum
-
-
-

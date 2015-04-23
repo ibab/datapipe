@@ -1,6 +1,7 @@
 
 from ..target import Target
 
+
 class MockTarget(Target):
     def __init__(self, identifier):
         self._identifier = identifier
@@ -11,4 +12,3 @@ class MockTarget(Target):
 
     def is_damaged(self):
         return True
-

@@ -12,6 +12,7 @@ from .util import full_traverse
 
 logger = get_logger()
 
+
 def require(targets, workers=1):
 
     if not isinstance(targets, collections.Iterable):
@@ -40,7 +41,7 @@ def require(targets, workers=1):
         outputs_ = list(full_traverse(outputs))
 
         if not isinstance(outputs, collections.Iterable):
-            outputs = [outputs,]
+            outputs = [outputs, ]
         else:
             outputs = list(outputs)
 
@@ -83,13 +84,14 @@ def require(targets, workers=1):
             for o in outputs_:
                 if isinstance(o, Target):
                     needs_update.add(o)
+
             # An input has changed: this task needs to be executed
             def runner(t, outputs, *args):
                 try:
                     t.run()
                 except:
                     logger.error('Error in execution of {}'.format(t))
-                    traceback.print_exc()                   
+                    traceback.print_exc()
                     sys.exit(1)
                 for trg in outputs:
                     trg.store()
@@ -119,4 +121,3 @@ def require(targets, workers=1):
     Target.db.Write(batch)
 
     logger.info('DONE {}'.format(', '.join(map(str, targets))))
-

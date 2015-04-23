@@ -31,7 +31,7 @@ class LocalFile(Target):
 
     def is_damaged(self):
         mem = self.stored()
-        if mem is None or not 'timestamp' in mem:
+        if mem is None or 'timestamp' not in mem:
             return True
 
         if not self.exists():
@@ -75,7 +75,7 @@ class LocalDirectory(Target):
 
     def is_damaged(self):
         mem = self.stored()
-        if mem is None or not 'timestamps' in mem:
+        if mem is None or 'timestamps' not in mem:
             return True
 
         if not self.exists():
@@ -86,4 +86,3 @@ class LocalDirectory(Target):
                 return True
 
         return False
-

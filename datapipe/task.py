@@ -1,7 +1,6 @@
 import six
 import types
 import collections
-import inspect
 import numpy as np
 import hashlib
 import joblib
@@ -9,10 +8,11 @@ import marshal
 
 from .log import get_logger
 from .input import Input
-from .util import full_traverse, freeze_object
+from .util import full_traverse
 from . import target
 
 logger = get_logger()
+
 
 def _pprint(params, offset=0, printer=repr):
     # Do a multi-line justified repr:
@@ -47,6 +47,7 @@ def _pprint(params, offset=0, printer=repr):
     # Strip trailing space to avoid nightmare in doctests
     lines = '\n'.join(l.rstrip(' ') for l in lines.split('\n'))
     return lines
+
 
 class Task:
     tasks = []
@@ -98,8 +99,6 @@ class Task:
     def __repr__(self):
         class_name = self.__class__.__name__
         params = ', '.join(map(lambda tup: '{}={}'.format(tup[0], tup[1]), self.input_values))
-        #return '{}({})'.format(class_name, _pprint(self.input_values,
-        #                                           offset=len(class_name)))
         return '{}({})'.format(class_name, params)
 
     def inputs(self):
@@ -150,11 +149,12 @@ class Task:
         for input_name, input_obj in inputs:
             if input_name not in result:
                 if input_obj.default is None:
-                    raise ValueError("Input '{}' has no default and no value was provided.".format(input_name))
+                    raise ValueError("Input '{}' has no default "
+                                     "and no value was provided.".format(input_name))
                 result[input_name] = input_obj.default
 
         return [(input_name, result[input_name]) for input_name, input_obj in inputs]
-    
+
     def get_code(self, func):
         return marshal.dumps(func.__code__.co_code)
 
@@ -170,4 +170,3 @@ class Task:
             m.update(self.get_code(self.user_outputs))
             self._checksum = m.digest()
         return self._checksum
-

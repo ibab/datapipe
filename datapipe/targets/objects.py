@@ -1,15 +1,15 @@
 from ..target import Target
-import hashlib
 import dill
 import joblib
 import base64
+
 
 class PyTarget(Target):
     def __init__(self, name, obj=None):
         self._name = name
         self._obj = obj
         super(PyTarget, self).__init__()
-        if not obj is None:
+        if obj is not None:
             self.set(obj)
 
     def identifier(self):
@@ -34,4 +34,3 @@ class PyTarget(Target):
                        joblib.hash(dill.loads(base64.b64decode(mem['obj'])))
         else:
             return self._obj is None
-
