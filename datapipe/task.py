@@ -156,7 +156,7 @@ class Task:
         return [(input_name, result[input_name]) for input_name, input_obj in inputs]
 
     def get_code(self, func):
-        return marshal.dumps(func.__code__.co_code)
+        return marshal.dumps(func.__code__)
 
     def checksum(self):
         if not self._checksum:
