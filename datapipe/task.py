@@ -5,6 +5,7 @@ import numpy as np
 import hashlib
 import joblib
 import marshal
+import inspect
 
 from .log import get_logger
 from .input import Input
@@ -161,12 +162,12 @@ class Task:
     def checksum(self):
         if not self._checksum:
             m = hashlib.sha1()
-            for ia in self.input_args:
+            for ia in full_traverse(self.input_args):
                 if isinstance(ia, target.Target):
                     m.update(ia.checksum())
                 else:
                     m.update(joblib.hash(ia).encode())
-            m.update(self.get_code(self.user_outputs))
-            m.update(self.get_code(self.user_outputs))
-            self._checksum = m.digest()
+            m.update('\n'.join(inspect.getsourcelines(self.user_outputs)[0]).encode('utf-8'))
+            m.update('\n'.join(inspect.getsourcelines(self.user_run)[0]).encode('utf-8'))
+            self._checksum = m.hexdigest()
         return self._checksum
